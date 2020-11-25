@@ -14,13 +14,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma experimental SMTChecker;
+//pragma solidity 0.5.12;
 
-contract VatLike {
+interface VatLike {
     function hope(address) external;
 }
 
-contract PotLike {
+interface PotLike {
     function chi() external returns (uint256);
     function rho() external returns (uint256);
     function drip() external returns (uint256);
@@ -28,12 +29,12 @@ contract PotLike {
     function exit(uint256) external;
 }
 
-contract JoinLike {
+interface JoinLike {
     function join(address, uint) external;
     function exit(address, uint) external;
 }
 
-contract GemLike {
+interface GemLike {
     function transferFrom(address,address,uint) external returns (bool);
     function approve(address,uint) external returns (bool);
 }
@@ -107,7 +108,7 @@ contract Chai {
     }
     // like transferFrom but dai-denominated
     function move(address src, address dst, uint wad) external returns (bool) {
-        uint chi = (now > pot.rho()) ? pot.drip() : pot.chi();
+        uint chi = (block.timestamp > pot.rho()) ? pot.drip() : pot.chi();
         // rounding up ensures dst gets at least wad dai
         return transferFrom(src, dst, rdivup(wad, chi));
     }
@@ -144,7 +145,7 @@ contract Chai {
                                  allowed))));
         require(holder != address(0), "chai/invalid holder");
         require(holder == ecrecover(digest, v, r, s), "chai/invalid-permit");
-        require(expiry == 0 || now <= expiry, "chai/permit-expired");
+        require(expiry == 0 || block.timestamp <= expiry, "chai/permit-expired");
         require(nonce == nonces[holder]++, "chai/invalid-nonce");
 
         uint can = allowed ? uint(-1) : 0;
@@ -153,12 +154,12 @@ contract Chai {
     }
 
     function dai(address usr) external returns (uint wad) {
-        uint chi = (now > pot.rho()) ? pot.drip() : pot.chi();
+        uint chi = (block.timestamp > pot.rho()) ? pot.drip() : pot.chi();
         wad = rmul(chi, balanceOf[usr]);
     }
     // wad is denominated in dai
     function join(address dst, uint wad) external {
-        uint chi = (now > pot.rho()) ? pot.drip() : pot.chi();
+        uint chi = (block.timestamp > pot.rho()) ? pot.drip() : pot.chi();
         uint pie = rdiv(wad, chi);
         balanceOf[dst] = add(balanceOf[dst], pie);
         totalSupply    = add(totalSupply, pie);
@@ -179,7 +180,7 @@ contract Chai {
         balanceOf[src] = sub(balanceOf[src], wad);
         totalSupply    = sub(totalSupply, wad);
 
-        uint chi = (now > pot.rho()) ? pot.drip() : pot.chi();
+        uint chi = (block.timestamp > pot.rho()) ? pot.drip() : pot.chi();
         pot.exit(wad);
         daiJoin.exit(msg.sender, rmul(chi, wad));
         emit Transfer(src, address(0), wad);
@@ -187,7 +188,7 @@ contract Chai {
 
     // wad is denominated in dai
     function draw(address src, uint wad) external {
-        uint chi = (now > pot.rho()) ? pot.drip() : pot.chi();
+        uint chi = (block.timestamp > pot.rho()) ? pot.drip() : pot.chi();
         // rounding up ensures usr gets at least wad dai
         exit(src, rdivup(wad, chi));
     }
